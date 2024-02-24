@@ -87,6 +87,40 @@
 #define WRITE_EN               (0x00)
 #define READ_EN                (0xFF)
 
+class MAX86141{
+
+  public:
+
+    SPIClass * spi = NULL;
+    int SS;
+    //8MHz clock on MAX86141 Max, only 200KHz necessary.
+    int spiClk = 1000000; 
+    bool debug = false;
+    
+    int led1A[128];
+    int led1B[128];
+    int led2A[128];
+    int led2B[128];
+    int led3A[128];
+    int led3B[128];
+    
+    uint8_t       m_tx_buf[3];                       /**< TX buffer. */
+    uint8_t       m_rx_buf[3];                       /**< RX buffer. */
+    const uint8_t m_length = sizeof(m_tx_buf);       /**< Transfer length. */
+
+    //Functions
+    void init(int setSpiClk);
+    void write_reg(uint8_t address, uint8_t data_in);
+    uint8_t read_reg(uint8_t address);
+    void fifo_intr();
+    void read_fifo(uint8_t data_buffer[], uint8_t count);
+    void device_data_read(void);
+    void setSS(int pin);
+    void setSPI(SPIClass * newspi);
+    void setSpiClk(int newSpiClk);
+    void setDebug(bool setdebug);
+    void clearInt();
+};
 
 
 #endif
