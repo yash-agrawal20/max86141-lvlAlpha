@@ -1,4 +1,4 @@
-# MAX86141 Optical Biomedical Sensor
+# MAX86141 Device Drivers
 
 ## Tasks completed:
 
