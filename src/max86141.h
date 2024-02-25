@@ -101,8 +101,6 @@ class MAX86141{
     int led1B[128];
     int led2A[128];
     int led2B[128];
-    int led3A[128];
-    int led3B[128];
     
     uint8_t       m_tx_buf[3];                       /**< TX buffer. */
     uint8_t       m_rx_buf[3];                       /**< RX buffer. */

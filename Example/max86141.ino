@@ -65,6 +65,62 @@ void setup() {
 
 }
 
+void calculateHRV() {
+
+    //Calculating SDNN (standard deviation of RR intervals)
+    float sum_squared_diff = 0.0;
+    float mean_rr = 0.0;
+
+    //Calculating mean RR interval
+    for (int i = 0; i < MAX_RR_INTERVALS; i++) {
+
+        mean_rr += rr_intervals[i];
+    }
+
+    mean_rr /= MAX_RR_INTERVALS;
+
+    //Calculating sum of squared differences from mean
+    for (int i = 0; i < MAX_RR_INTERVALS; i++) {
+
+        float diff = rr_intervals[i] - mean_rr;
+        sum_squared_diff += diff * diff;
+    }
+
+    float sdnn = sqrt(sum_squared_diff / MAX_RR_INTERVALS);
+
+    Serial.print("SDNN: ");
+    Serial.println(sdnn);
+}
+
+
+float calculateRespirationRate(int *signal, int length) {
+    
+    //Performing peak detection on the signal
+    float threshold = 0.5; //To be set based on the signal
+    int peak_count = 0;
+    bool is_peak = false;
+
+    for (int i = 1; i < length - 1; ++i) {
+
+        if (signal[i] > signal[i - 1] && signal[i] > signal[i + 1]) {
+            // Peak detected
+            if (!is_peak && signal[i] > threshold) {
+                peak_count++;
+                is_peak = true;
+            }
+        } 
+        else {
+            is_peak = false;
+        }
+    }
+
+    //Calculating respiration rate based on the peak count and sampling rate
+    float sampling_rate = 25; //Hz
+    float respiration_rate = (peak_count * 60.0) / (length / sampling_rate);
+
+    return respiration_rate;
+}
+
 // the loop function runs over and over again until power down or reset
 void loop() {
   
@@ -73,19 +129,19 @@ void loop() {
     if(pulseOx1.read_reg(REG_FIFO_DATA_COUNT) >= 6){
     
         pulseOx1.device_data_read();
-        int led1A[32] = pulseOx1.led1A;
-        int led2A[32] = pulseOx1.led2A;
-        int led1B[32] = pulseOx1.led1B;
-        int led2B[32] = pulseOx1.led2B;
+        int led1A[128] = pulseOx1.led1A;
+        int led2A[128] = pulseOx1.led2A;
+        int led1B[128] = pulseOx1.led1B;
+        int led2B[128] = pulseOx1.led2B;
 
-        int RED_LED_buffer[32];
-        int IR_LED_buffer[32];
+        int RED_LED_buffer[128];
+        int IR_LED_buffer[128];
 
-        for (int i = 0; i < 32; ++i) {
+        for (int i = 0; i < 128; ++i) {
             RED_LED_buffer[i] = (led1A[i] + led2A[i]) / 2;
         }
 
-        for (int i = 0; i < 32; ++i) {
+        for (int i = 0; i < 128; ++i) {
             IR_LED_buffer[i] = (led1B[i] + led2B[i]) / 2;
         }
 
@@ -111,7 +167,7 @@ void loop() {
             Serial.print("Heart Rate: ");
             Serial.println(heart_rate);
 
-            // Calculating RR interval from heart rate. Converting heart rate to milliseconds
+            // Calculating RR interval from heart rate and converting heart rate to milliseconds
             uint32_t rr_interval = 60000 / heart_rate;
 
             if (rr_count < MAX_RR_INTERVALS) {
@@ -136,7 +192,7 @@ void loop() {
         }
 
         //Calculating Respiration Rate using the IR_LED_buffer
-        float respiration_rate = detectRespirationRate(IR_LED_buffer, 32); // Implement detectRespirationRate function
+        float respiration_rate = detectRespirationRate(IR_LED_buffer, 128); // Implement detectRespirationRate function
         Serial.print("Respiration Rate: ");
         Serial.println(respiration_rate);
         
@@ -144,63 +200,4 @@ void loop() {
         delayMicroseconds(2500);
         //pulseOx1.device_data_read();
     }
-}
-
-
-void calculateHRV() {
-
-    //Calculating SDNN (standard deviation of RR intervals)
-    float sum_squared_diff = 0.0;
-    float mean_rr = 0.0;
-
-    //Calculating mean RR interval
-    for (int i = 0; i < MAX_RR_INTERVALS; i++) {
-
-        mean_rr += rr_intervals[i];
-    }
-
-    mean_rr /= MAX_RR_INTERVALS;
-
-    //Calculating sum of squared differences from mean
-    for (int i = 0; i < MAX_RR_INTERVALS; i++) {
-
-        float diff = rr_intervals[i] - mean_rr;
-        sum_squared_diff += diff * diff;
-    }
-
-    //Finding SDNN
-    float sdnn = sqrt(sum_squared_diff / MAX_RR_INTERVALS);
-
-    // Print or use HRV measures
-    Serial.print("SDNN: ");
-    Serial.println(sdnn);
-}
-
-
-float calculateRespirationRate(int *signal, int length) {
-    
-    //Perform peak detection on the signal
-    float threshold = 0.5; //To be set based on the signal
-    int peak_count = 0;
-    bool is_peak = false;
-
-    for (int i = 1; i < length - 1; ++i) {
-
-        if (signal[i] > signal[i - 1] && signal[i] > signal[i + 1]) {
-            // Peak detected
-            if (!is_peak && signal[i] > threshold) {
-                peak_count++;
-                is_peak = true;
-            }
-        } 
-        else {
-            is_peak = false;
-        }
-    }
-
-    //Calculating respiration rate based on the peak count and sampling rate
-    float sampling_rate = 25; //Hz
-    float respiration_rate = (peak_count * 60.0) / (length / sampling_rate);
-
-    return respiration_rate;
 }

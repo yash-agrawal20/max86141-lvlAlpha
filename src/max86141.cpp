@@ -1,4 +1,4 @@
-#include "MAX86141.h"
+#include "max86141.h"
 
 //Write to a register function
 void MAX86141::write_reg(uint8_t address, uint8_t data_in) {
@@ -45,7 +45,7 @@ void MAX86141::write_reg(uint8_t address, uint8_t data_in) {
 }
 
 
-/*read register function*/
+//Read register function
 uint8_t MAX86141::read_reg(uint8_t address) {
 
     //Buffer with data to transfer.
@@ -106,10 +106,8 @@ void MAX86141::init(int newSpiClk=1000000)
 	read_reg(REG_INT_STAT_2);
     //Shutdown
     write_reg(REG_MODE_CONFIG, 0x02);
-    //Pulse Width = 123.8ms
-    write_reg(REG_PPG_CONFIG_1, 0x03);
-    //ADC Range - 16micro ampere
-    write_reg(REG_FIFO_CONFIG_1, 0x28);
+    //Pulse Width = 123.8ms + ADC Range - 16micro ampere
+    write_reg(REG_FIFO_CONFIG_1, 0x2B);
     //Sample Averaging - 1, and Sample Rate - 25sps
     write_reg(REG_PPG_CONFIG_2, 0x00)
     //LED Settling Time
@@ -118,18 +116,18 @@ void MAX86141::init(int newSpiClk=1000000)
     write_reg(REG_PD_BIAS, 0x11)
 
 	// LED 1,2 Range = 124mA
-	write_reg(REG_LED_RANGE_1, 0b00001111);
+	write_reg(REG_LED_RANGE_1, 0x0F);
     // LED 1 current - 15.36mA
-	write_reg(REG_LED1_PA, 0x02); 
+	write_reg(REG_LED1_PA, 0x20); 
     // LED 2 current - 15.36mA
-	write_reg(REG_LED2_PA, 0x02);
+	write_reg(REG_LED2_PA, 0x20);
     //Low Power Mode
     write_reg(REG_MODE_CONFIG, 0x04)
 
     //FIFO Configurations
     write_reg(REG_FIFO_CONFIG_1, 0x01);
     write_reg(REG_FIFO_CONFIG_2, 0x02);
-    write_reg(REG_LED_SEQ_1, 0x11);
+    write_reg(REG_LED_SEQ_1, 0x21);
     write_reg(REG_LED_SEQ_2, 0x00);
     write_reg(REG_LED_SEQ_3, 0x00);
 
@@ -143,6 +141,7 @@ void MAX86141::read_fifo(uint8_t data_buffer[], int count)
 {
     data_buffer[0] = REG_FIFO_DATA;
     data_buffer[1] = READ_EN;
+
     digitalWrite(SS, HIGH);
     spi->beginTransaction(SPISettings(spiClk, MSBFIRST, SPI_MODE3));
     digitalWrite(SS, LOW);
@@ -165,8 +164,8 @@ void MAX86141::fifo_intr()
     count = read_reg(REG_FIFO_DATA_COUNT); 
 
     //indicates full FIFO
-    if (count == 0x80) 
-    { 
+    if (count == 0x80){
+
         device_data_read();
     }
  }
@@ -202,11 +201,6 @@ void MAX86141::device_data_read()
     uint8_t sample_count;
     uint8_t reg_val;
     uint8_t dataBuf[128*2*2*3]; ///128 FIFO samples, 2 channels, 2 PDs, 3 bytes/channel
-
-    int led1A[32];
-    int led1B[32];
-    int led2A[32];
-    int led2B[32];
 
     sample_count = read_reg(REG_FIFO_DATA_COUNT); //number of items available in FIFO to read 
 
