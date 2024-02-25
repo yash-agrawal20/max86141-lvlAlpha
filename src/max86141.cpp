@@ -136,3 +136,103 @@ void MAX86141::init(int newSpiClk=1000000)
     //Shutdown
     write_reg(REG_MODE_CONFIG, 0x00);
 }
+
+
+//Read FIFO
+void MAX86141::read_fifo(uint8_t data_buffer[], int count)
+{
+    data_buffer[0] = REG_FIFO_DATA;
+    data_buffer[1] = READ_EN;
+    digitalWrite(SS, HIGH);
+    spi->beginTransaction(SPISettings(spiClk, MSBFIRST, SPI_MODE3));
+    digitalWrite(SS, LOW);
+    spi->transfer(data_buffer, 2);
+    spi->transfer(data_buffer, count * 3);
+    digitalWrite(SS, HIGH);
+    spi->endTransaction();
+    digitalWrite(SS, LOW);
+
+    if(debug == true){
+        // Serial.println("Data buffer");
+        // Serial.println(data_buffer[0]);
+    }
+}
+
+
+void MAX86141::fifo_intr()
+{
+    uint8_t count;
+    count = read_reg(REG_FIFO_DATA_COUNT); 
+
+    //indicates full FIFO
+    if (count == 0x80) 
+    { 
+        device_data_read();
+    }
+ }
+
+//Using the pseudo code available in the datasheet (Page 21)
+void MAX86141::clearInt() {
+  uint16_t intr = 0x00;
+  intr = read_reg(REG_INT_STAT_1) << 8;
+  intr |= read_reg(REG_INT_STAT_2);
+}
+
+
+void MAX86141::setSS(int pin){
+    SS = pin;
+}
+
+void MAX86141::setSPI(SPIClass * newspi){
+    spi = newspi;
+}
+
+void MAX86141::setSpiClk(int newSpiClk) {
+    spiClk = newSpiClk;
+}
+
+void MAX86141::setDebug(bool setdebug) {
+    debug = setdebug;
+}
+
+
+//Using the pseudo-code available in MAX86141 datasheet (Page 22)
+void MAX86141::device_data_read()
+{
+    int sample_count;
+    uint8_t reg_val;
+    sample_count =  read_reg(REG_FIFO_DATA_COUNT);
+    //Serial.println("sample_count :"+String(read_reg(REG_FIFO_DATA_COUNT)));
+
+    //Dynamic Allocation
+    uint8_t *dataBuf = (uint8_t*)malloc(sample_count*3*sizeof(uint8_t));
+    memset(dataBuf, 0, sample_count*3*sizeof(uint8_t));   // Flush buffer
+
+    read_fifo(dataBuf,sample_count);
+
+    //Dual photodiode chnnels and LED channels
+    //Reading of 1 sample for Serial Test
+    tagSeq1A_PD1 = (dataBuf[0] >> 3) & 0x1f;
+    ledSeq1A_PD1 = ((dataBuf[0] << 16) | (dataBuf[1] << 8) | (dataBuf[2])) & 0x7ffff;
+
+    tagSeq1A_PD2 = (dataBuf[3] >> 3) & 0x1f;
+    ledSeq1A_PD2 = ((dataBuf[3] << 16) | (dataBuf[4] << 8) | (dataBuf[5])) & 0x7ffff;
+
+    tagSeq1B_PD1 = (dataBuf[6] >> 3) & 0x1f;
+    ledSeq1B_PD1 = ((dataBuf[6] << 16) | (dataBuf[7] << 8) | (dataBuf[8])) & 0x7ffff;
+
+    tagSeq1B_PD2 = (dataBuf[9] >> 3) & 0x1f;
+    ledSeq1B_PD2 = ((dataBuf[9] << 16) | (dataBuf[10] << 8)| (dataBuf[11])) & 0x7ffff;
+
+    free(dataBuf);
+    free(tagSeq1A_PD11);
+    free(ledSeq1A_PD11);
+    free(tagSeq1A_PD22);
+    free(ledSeq1A_PD22);
+    free(tagSeq1B_PD11);
+    free(ledSeq1B_PD11);
+    free(tagSeq1B_PD22);
+    free(ledSeq1B_PD22);
+
+    clearInt();
+}
