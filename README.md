@@ -1,5 +1,3 @@
-# max86141-lvlAlpha
-
 # MAX86141 Optical Biomedical Sensor
 
 ## Tasks completed:
