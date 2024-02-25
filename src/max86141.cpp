@@ -210,29 +210,39 @@ void MAX86141::device_data_read()
 
     read_fifo(dataBuf,sample_count);
 
-    //Dual photodiode chnnels and LED channels
+    //Single photodiode chnnels and LED channels
     //Reading of 1 sample for Serial Test
     tagSeq1A_PD1 = (dataBuf[0] >> 3) & 0x1f;
     ledSeq1A_PD1 = ((dataBuf[0] << 16) | (dataBuf[1] << 8) | (dataBuf[2])) & 0x7ffff;
 
-    tagSeq1A_PD2 = (dataBuf[3] >> 3) & 0x1f;
-    ledSeq1A_PD2 = ((dataBuf[3] << 16) | (dataBuf[4] << 8) | (dataBuf[5])) & 0x7ffff;
+    tagSeq1B_PD1 = (dataBuf[3] >> 3) & 0x1f;
+    ledSeq1B_PD1 = ((dataBuf[3] << 16) | (dataBuf[4] << 8) | (dataBuf[5])) & 0x7ffff;
 
-    tagSeq1B_PD1 = (dataBuf[6] >> 3) & 0x1f;
-    ledSeq1B_PD1 = ((dataBuf[6] << 16) | (dataBuf[7] << 8) | (dataBuf[8])) & 0x7ffff;
+    tagSeq2A_PD1 = (dataBuf[6] >> 3) & 0x1f;
+    ledSeq2A_PD1 = ((dataBuf[6] << 16) | (dataBuf[7] << 8) | (dataBuf[8])) & 0x7ffff;
 
-    tagSeq1B_PD2 = (dataBuf[9] >> 3) & 0x1f;
-    ledSeq1B_PD2 = ((dataBuf[9] << 16) | (dataBuf[10] << 8)| (dataBuf[11])) & 0x7ffff;
+    tagSeq2B_PD1 = (dataBuf[9] >> 3) & 0x1f;
+    ledSeq2B_PD1 = ((dataBuf[9] << 16) | (dataBuf[10] << 8) | (dataBuf[11])) & 0x7ffff;
+
+    tagSeq3A_PD1 = (dataBuf[12] >> 3) & 0x1f;
+    ledSeq3A_PD1 = ((dataBuf[12] << 16) | (dataBuf[13] << 8) | (dataBuf[14])) & 0x7ffff;
+
+    tagSeq3B_PD1 = (dataBuf[15] >> 3) & 0x1f;
+    ledSeq3B_PD1 = ((dataBuf[15] << 16) | (dataBuf[16] << 8) | (dataBuf[17])) & 0x7ffff;
 
     free(dataBuf);
-    free(tagSeq1A_PD11);
-    free(ledSeq1A_PD11);
-    free(tagSeq1A_PD22);
-    free(ledSeq1A_PD22);
-    free(tagSeq1B_PD11);
-    free(ledSeq1B_PD11);
-    free(tagSeq1B_PD22);
-    free(ledSeq1B_PD22);
+    free(tagSeq1A_PD1);
+    free(ledSeq1A_PD1);
+    free(tagSeq1B_PD1);
+    free(ledSeq1B_PD1);
+    free(tagSeq2A_PD1);
+    free(ledSeq2A_PD1);
+    free(tagSeq2B_PD1);
+    free(ledSeq2B_PD1);
+    free(tagSeq3A_PD1);
+    free(ledSeq3A_PD1);
+    free(tagSeq3B_PD1);
+    free(ledSeq3B_PD1);
 
     clearInt();
 }
