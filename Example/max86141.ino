@@ -3,13 +3,12 @@
 static int spiClk = 2000000; // 8 MHz Maximum
 unsigned long currentMicros;
 unsigned long LEDMicros;
-unsigned long LEDFrequency = 7500; //Time (in Microseconds) between each change in LED state (Red, IR, Ambient);
+unsigned long LEDFrequency = 7500; //Time (in Microseconds) between each change in LED state (Red, IR);
 
-bool RED_ON = false;
-bool IR_ON = false;
-bool AMBIENT = true;
+#define MAX_RR_INTERVALS 50 //Maximum number of RR intervals to store
 
-float RED_AVG, IR_AVG, AMBIENT_AVG;
+uint32_t rr_intervals[MAX_RR_INTERVALS]; //Array to store RR intervals
+int rr_count = 0; //Counter to keep track of the number of RR intervals stored
 
 
 // Pin Definitions.
@@ -66,43 +65,6 @@ void setup() {
 
 }
 
-void switch_LED(){
-
-    //pulseOx1.device_data_read();
-    if(IR_ON){
-
-        digitalWrite(RED,LOW);
-        digitalWrite(IR,LOW);
-        //Serial.println("AMBIENT");
-        RED_ON = false;
-        IR_ON = false;
-        AMBIENT = true;
-        return;
-    }
-
-    if(RED_ON){
-
-        digitalWrite(RED,LOW);
-        digitalWrite(IR,HIGH);
-        //Serial.println("IR");
-        RED_ON = false;
-        AMBIENT = false;
-        IR_ON = true;
-        return;
-    }
-
-    if(AMBIENT){
-
-        digitalWrite(IR,LOW);
-        digitalWrite(RED,HIGH);
-        //Serial.println("RED");
-        AMBIENT = false;
-        IR_ON = false;
-        RED_ON = true;
-        return;
-    }
-}
-
 // the loop function runs over and over again until power down or reset
 void loop() {
   
@@ -111,33 +73,134 @@ void loop() {
     if(pulseOx1.read_reg(REG_FIFO_DATA_COUNT) >= 6){
     
         pulseOx1.device_data_read();
-        int led1A = pulseOx1.ledSeq1A_PD1[0];
-        int led2A = pulseOx1.ledSeq2A_PD1[0];
-        int led1B = pulseOx1.ledSeq1B_PD1[0];
-        int led2B = pulseOx1.ledSeq2B_PD1[0];
+        int led1A[32] = pulseOx1.led1A;
+        int led2A[32] = pulseOx1.led2A;
+        int led1B[32] = pulseOx1.led1B;
+        int led2B[32] = pulseOx1.led2B;
 
-        AMBIENT_AVG = (pulseOx1.ledSeq3A_PD1[0] + pulseOx1.ledSeq3B_PD1[0])*0.5;
+        int RED_LED_buffer[32];
+        int IR_LED_buffer[32];
 
-        RED_AVG = (led1A + led1B)*0.5;
-        // Serial.print("Red: ");
-        // Serial.print(RED_AVG);
+        for (int i = 0; i < 32; ++i) {
+            RED_LED_buffer[i] = (led1A[i] + led2A[i]) / 2;
+        }
 
-        IR_AVG = (led2A + led2B)*0.5;
-        // Serial.print("\t");
-        // Serial.print("IR: ");
-        // Serial.print(IR_AVG);
+        for (int i = 0; i < 32; ++i) {
+            IR_LED_buffer[i] = (led1B[i] + led2B[i]) / 2;
+        }
 
-        // Serial.print("\t");
-        // Serial.print("Ambient: ");
-        // Serial.println(AMBIENT_AVG); 
+        float spo2;
+        int32_t heart_rate;
+        int8_t spo2_valid;
+        int8_t hr_valid;
+        float ratio;
+        float correl;
 
-        float ratio = RED_AVG/IR_AVG;
-        Serial.print("Ratio: ");
-        Serial.println(ratio*4);
+        rf_heart_rate_and_oxygen_saturation(IR_LED_buffer, 32, RED_LED_buffer, &spo2, &spo2_valid, &heart_rate, &hr_valid, &ratio, &correl);
+
+        if (spo2_valid == 1) {
+            Serial.print("SpO2: ");
+            Serial.println(spo2);
+        } 
         
-        //switch_LED();
+        else {
+            Serial.println("Invalid SpO2 value");
+        }
+
+        if (hr_valid == 1) {
+            Serial.print("Heart Rate: ");
+            Serial.println(heart_rate);
+
+            // Calculating RR interval from heart rate. Converting heart rate to milliseconds
+            uint32_t rr_interval = 60000 / heart_rate;
+
+            if (rr_count < MAX_RR_INTERVALS) {
+                rr_intervals[rr_count++] = rr_interval;
+            }
+        } 
+        
+        else {
+            Serial.println("Invalid Heart Rate");
+        }
+
+        Serial.println();
+
+        // Calculate HRV
+        if (rr_count >= MAX_RR_INTERVALS) {
+            calculateHRV();
+        }
+
+        // Reset rr_count
+        if (rr_count >= MAX_RR_INTERVALS) {
+            rr_count = 0;
+        }
+
+        //Calculating Respiration Rate using the IR_LED_buffer
+        float respiration_rate = detectRespirationRate(IR_LED_buffer, 32); // Implement detectRespirationRate function
+        Serial.print("Respiration Rate: ");
+        Serial.println(respiration_rate);
+        
         LEDMicros = currentMicros;
-        //delayMicroseconds(2500);
+        delayMicroseconds(2500);
         //pulseOx1.device_data_read();
     }
+}
+
+
+void calculateHRV() {
+
+    //Calculating SDNN (standard deviation of RR intervals)
+    float sum_squared_diff = 0.0;
+    float mean_rr = 0.0;
+
+    //Calculating mean RR interval
+    for (int i = 0; i < MAX_RR_INTERVALS; i++) {
+
+        mean_rr += rr_intervals[i];
+    }
+
+    mean_rr /= MAX_RR_INTERVALS;
+
+    //Calculating sum of squared differences from mean
+    for (int i = 0; i < MAX_RR_INTERVALS; i++) {
+
+        float diff = rr_intervals[i] - mean_rr;
+        sum_squared_diff += diff * diff;
+    }
+
+    //Finding SDNN
+    float sdnn = sqrt(sum_squared_diff / MAX_RR_INTERVALS);
+
+    // Print or use HRV measures
+    Serial.print("SDNN: ");
+    Serial.println(sdnn);
+}
+
+
+float calculateRespirationRate(int *signal, int length) {
+    
+    //Perform peak detection on the signal
+    float threshold = 0.5; //To be set based on the signal
+    int peak_count = 0;
+    bool is_peak = false;
+
+    for (int i = 1; i < length - 1; ++i) {
+
+        if (signal[i] > signal[i - 1] && signal[i] > signal[i + 1]) {
+            // Peak detected
+            if (!is_peak && signal[i] > threshold) {
+                peak_count++;
+                is_peak = true;
+            }
+        } 
+        else {
+            is_peak = false;
+        }
+    }
+
+    //Calculating respiration rate based on the peak count and sampling rate
+    float sampling_rate = 25; //Hz
+    float respiration_rate = (peak_count * 60.0) / (length / sampling_rate);
+
+    return respiration_rate;
 }
