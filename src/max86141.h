@@ -93,7 +93,6 @@ class MAX86141{
 
     SPIClass * spi = NULL;
     int SS;
-    //8MHz clock on MAX86141 Max, only 200KHz necessary.
     int spiClk = 1000000; 
     bool debug = false;
     

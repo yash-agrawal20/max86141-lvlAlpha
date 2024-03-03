@@ -13,10 +13,15 @@ int rr_count = 0; //Counter to keep track of the number of RR intervals stored
 
 
 // Pin Definitions.
-// #define MISO_PIN              19
-// #define MOSI_PIN              23
-// #define SCK_PIN               18
+#define MISO_PIN              19
+#define MOSI_PIN              23
+#define SCK_PIN               18
 #define SS_PIN                5
+
+#define VSPI_MISO             MISO
+#define VSPI_MOSI             MOSI
+#define VSPI_SCLK             SCK
+#define VSPI_SS               SS_PIN
 
 #define INT_PIN               17
 
@@ -42,7 +47,7 @@ void setup() {
     digitalWrite(SS_PIN, LOW);
 
     //initialise SPI
-    pulseOx1.spi = new SPIClass(SPI);
+    pulseOx1.spi = new SPIClass(VSPI);
     pulseOx1.SS = SS_PIN;
     Serial.println("Init Device");
     pulseOx1.spi->begin();
