@@ -1,4 +1,5 @@
 #include "max86141.h"
+#include "algorithms_by_RF.h"
 
 static int spiClk = 2000000; // 8 MHz Maximum
 unsigned long currentMicros;
@@ -12,27 +13,18 @@ int rr_count = 0; //Counter to keep track of the number of RR intervals stored
 
 
 // Pin Definitions.
-#define MISO_PIN              19
-#define MOSI_PIN              23
-#define SCK_PIN               18
+// #define MISO_PIN              19
+// #define MOSI_PIN              23
+// #define SCK_PIN               18
 #define SS_PIN                5
 
-#define VSPI_MISO             MISO
-#define VSPI_MOSI             MOSI
-#define VSPI_SCLK             SCK
-#define VSPI_SS               SS_PIN
-  
 #define INT_PIN               17
-
-#define GPIO1_PIN             16
-#define GPIO2_PIN             4
 
 #define RED                   12
 #define IR                    14
 
 //uninitalised pointers to SPI objects
 MAX86141 pulseOx1;
-//MAX86141 pulseOx2;
 
 void setup() {
 
@@ -41,8 +33,6 @@ void setup() {
     // Configure IO.
     pinMode(SS_PIN, OUTPUT);
     pinMode(INT_PIN, INPUT_PULLUP);
-    //pinMode(GPIO1_PIN, OUTPUT);
-    //pinMode(GPIO2_PIN, INPUT_PULLUP);
 
     pinMode(RED, OUTPUT);
     pinMode(IR, OUTPUT);
@@ -50,14 +40,14 @@ void setup() {
     digitalWrite(IR, LOW);
 
     digitalWrite(SS_PIN, LOW);
-    //digitalWrite(GPIO1_PIN, HIGH);
 
     //initialise SPI
-    pulseOx1.spi = new SPIClass(VSPI);
-    pulseOx1.SS = 5;
+    pulseOx1.spi = new SPIClass(SPI);
+    pulseOx1.SS = SS_PIN;
     Serial.println("Init Device");
     pulseOx1.spi->begin();
     delay(100);
+
     pulseOx1.setDebug(false);
     pulseOx1.init(spiClk);
     currentMicros = micros();//esp_timer_get_time();
