@@ -1,7 +1,7 @@
 #include "max86141.h"
 #include "algorithms_by_RF.h"
 
-static int spiClk = 2000000; // 8 MHz Maximum
+static int spiClk = 2000000; // 4 MHz Maximum
 unsigned long currentMicros;
 unsigned long LEDMicros;
 unsigned long LEDFrequency = 7500; //Time (in Microseconds) between each change in LED state (Red, IR);
