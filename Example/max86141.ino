@@ -88,7 +88,7 @@ void calculateHRV() {
 }
 
 
-float calculateRespirationRate(int *signal, int length) {
+float detectRespirationRate(int *signal, int length) {
     
     //Performing peak detection on the signal
     float threshold = 0.5; //To be set based on the signal
@@ -187,7 +187,7 @@ void loop() {
         }
 
         //Calculating Respiration Rate using the IR_LED_buffer
-        float respiration_rate = detectRespirationRate(IR_LED_buffer, 128); // Implement detectRespirationRate function
+        float respiration_rate = detectRespirationRate(IR_LED_buffer, 128);
         Serial.print("Respiration Rate: ");
         Serial.println(respiration_rate);
         
